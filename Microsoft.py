@@ -9,7 +9,7 @@ API_ID = 26843761
 API_HASH = "d0ebfea34c3cdab94dabb1b36338f7d2"
 BOT_TOKEN = "8497140725:AAE2YLSuXGYaKm4PxAe9P1uj085a118DJis"  # DİKKAT: Bunu public paylaşma normalde :)
 
-BASE_DIR = "/app"  # Railway çalışma dizini
+BASE_DIR = ""  # Railway çalışma dizini
 
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 PROXY_FILE  = os.path.join(BASE_DIR, "proxy.txt")
@@ -476,3 +476,4 @@ async def document_handler(client, message):
 if __name__ == "__main__":
     print("BOT IS RUNNING...")
     app.run()
+
