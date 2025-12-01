@@ -385,14 +385,21 @@ async def run_checker_with_proxies(client, combo_lines, message):
     if not proxies:
         await message.reply("⚠️ Proxy file is empty or not found. Checking without proxies.")
 
-    status_msg = await message.reply(f"✔️ Starting check for **{len(combo_lines)}** combos.\nPlease wait a few minutes for the process to complete...")
+    status_msg = await message.reply(
+        f"✔️ Starting check for **{len(combo_lines)}** combos.\n"
+        f"Please wait a few minutes for the process to complete..."
+    )
 
     results = {"hit": [], "nfa": [], "fail": [], "retry": []}
     total_checked, hit_count, nfa_count, fail_count = 0, 0, 0, 0
 
     with ThreadPoolExecutor(max_workers=100) as executor:
         future_to_line = {
-            executor.submit(process_combo_line, line, {"http": f"http://{random.choice(proxies)}"} if proxies else None): line
+            executor.submit(
+                process_combo_line,
+                line,
+                {"http": f"http://{random.choice(proxies)}"} if proxies else None
+            ): line
             for line in combo_lines
         }
         for future in as_completed(future_to_line):
@@ -401,9 +408,12 @@ async def run_checker_with_proxies(client, combo_lines, message):
                 status, combo = future.result()
                 if status in results:
                     results[status].append(combo)
-                if status == "hit": hit_count += 1
-                elif status == "nfa": nfa_count += 1
-                else: fail_count += 1
+                if status == "hit":
+                    hit_count += 1
+                elif status == "nfa":
+                    nfa_count += 1
+                else:
+                    fail_count += 1
             except Exception:
                 results["retry"].append(future_to_line[future].strip())
                 fail_count += 1
@@ -440,9 +450,30 @@ async def run_checker_with_proxies(client, combo_lines, message):
 
     if files_to_send:
         for i, file_path in enumerate(files_to_send):
-             await client.send_document(chat_id=user_id, document=file_path, caption=caption if i == 0 else "")
+            await client.send_document(
+                chat_id=user_id,
+                document=file_path,
+                caption=caption if i == 0 else ""
+            )
     else:
         await message.reply(caption)
+
+    # 🔥 BURASI ÖNEMLİ: TARMA BİTİNCE RESULT DOSYALARINI SİL 🔥
+    for file_path in files_to_send:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"[CLEANUP] Deleted result file: {file_path}")
+        except Exception as cleanup_err:
+            print(f"[CLEANUP ERROR] {cleanup_err}")
+
+    # Klasör boş kaldıysa user_results_dir'i de temizlemeyi dene (opsiyonel)
+    try:
+        if os.path.isdir(user_results_dir) and not os.listdir(user_results_dir):
+            os.rmdir(user_results_dir)
+            print(f"[CLEANUP] Removed empty directory: {user_results_dir}")
+    except Exception as dir_err:
+        print(f"[CLEANUP DIR ERROR] {dir_err}")
         
 
 @app.on_message(filters.document & filters.private)
@@ -476,3 +507,4 @@ async def document_handler(client, message):
 if __name__ == "__main__":
     print("BOT IS RUNNING...")
     app.run()
+
