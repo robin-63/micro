@@ -440,11 +440,12 @@ async def run_checker_with_proxies(client, combo_lines, message):
         files_to_send.append(nfa_filename)
 
     caption = (
-        f"**✨ Check Complete! ✨**\n\n"
+        f"**Microsoft Accounts Check Complete! **\n\n"
         f"✅ Valid: `{hit_count}`\n"
         f"ℹ️ 2FA/NFA: `{nfa_count}`\n"
         f"❌ Invalid: `{fail_count}`\n"
         f"🎯 Total Checked: `{total_checked}`\n\n"
+        f"🤖RoBot: `@TomSyex1bot`\n\n"
         f"👑 [CHANNEL](https://t.me/r3Z1N)"
     )
 
@@ -507,5 +508,6 @@ async def document_handler(client, message):
 if __name__ == "__main__":
     print("BOT IS RUNNING...")
     app.run()
+
 
 
